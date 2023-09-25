@@ -925,3 +925,25 @@ log "replacing all trees of depth 1 containing 14 by Leaf 0\n"
 let new_tree = treplace (fun t -> tcontains_simple 14 t && depth t = 1) (Leaf 0) tree ;;
 
 print_tree string_of_int new_tree ;;
+
+log "\n\nPartie 6\n" ;;
+log "----------------\n" ;;
+
+log "\n[Compilation]\n" ;;
+
+(* showdir :
+  - print the current directory
+  - read the content, sort it using Array.sort and the builtin compare
+  - printf it
+*)
+let showdir () =
+  let dir = Sys.getcwd () in
+  let files = Sys.readdir dir in
+  Array.sort compare files ;
+  log "Current directory: %s\n" dir ;
+  Array.iter (log "%s\n") files
+;;
+
+let () = showdir () ;;
+
+log "\n[Exceptions]\n" ;;
