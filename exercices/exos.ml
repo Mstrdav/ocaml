@@ -947,3 +947,132 @@ let showdir () =
 let () = showdir () ;;
 
 log "\n[Exceptions]\n" ;;
+
+exception Horrible_error ;;
+exception Bad_bad_thing of int * string ;;
+
+let test_raise x =
+  try
+    if x < 0 then raise Not_found
+    else if x = 0 then failwith "Zero"
+    else if x > 100 then raise Horrible_error
+    else if x > 10 then raise (Bad_bad_thing (x, "Too big."))
+    else [ string_of_int x ]
+  with
+    | Not_found -> []
+    | Failure s -> [s]
+    | Horrible_error -> ["Horrible error"]
+    | Bad_bad_thing (x, s) -> [Printf.sprintf "Bad bad thing: %d %s" x s]
+;;
+
+let () = List.iter (log "%s ") (test_raise 0) ;; log "\n" ;;
+let () = List.iter (log "%s ") (test_raise 1) ;; log "\n" ;;
+let () = List.iter (log "%s ") (test_raise 11) ;; log "\n" ;;
+let () = List.iter (log "%s ") (test_raise 101) ;; log "\n" ;;
+
+let call f args =
+  try
+    f args
+  with (* print failure *)
+    | error -> log "Failure: %s\n" (Printexc.to_string error)
+;;
+
+let eval f args =
+  try
+    Ok (f args)
+  with (* return failure *)
+    | ex -> Error ex
+;;
+
+let rec check_all f = function
+  | [] -> true
+  | (x, exp) :: rest -> (eval f x) = exp && check_all f rest
+;;
+
+let take_two = function
+  | [] -> raise Not_found
+  | [x] -> raise Not_found
+  | x :: y :: rest -> (x, y)
+;;
+
+log "TESTS:\n%b%! " (check_all take_two []) ;;
+log "%b%! " (check_all take_two [ ([1], Error Not_found) ]) ;;
+log "%b%! " (check_all take_two [ ([1], Ok (1,1)) ]) ;;
+log "%b%! " (check_all take_two [ ([1], Error Not_found) ; ([4;3;2;1], Ok (4,3)) ]) ;;
+log "%b%!\n" (check_all take_two [ ([1], Error Not_found) ; ([4;3;2;1], Error Not_found) ]) ;;
+
+log "\n[Controled effects]\n" ;;
+
+let calc x =
+  Printf.printf "Computing x*x with x = %d\n%!" x ;
+  x * x
+;;
+
+let cache f =
+  let tbl = Hashtbl.create 10 in
+  let inner arg = 
+    try
+      Hashtbl.find tbl arg
+    with
+      | Not_found ->
+        let res = f arg in
+        Hashtbl.add tbl arg res ;
+        res
+      in
+  inner ;;
+
+let cached_version_of_calc = cache calc ;;
+
+log "Without cache\n" ;;
+List.map calc [ 3 ; 2 ; 2 ; 3 ; 1 ; 2 ; 3 ; 2 ; 2 ; 1 ] ;;
+log "With cache\n" ;;
+List.map cached_version_of_calc [ 3 ; 2 ; 2 ; 3 ; 1 ; 2 ; 3 ; 2 ; 2 ; 1 ] ;;
+
+type 'a tlazy = {
+  mutable tvalue: 'a option ;
+  fcompute: unit -> 'a
+} ;;
+
+let flazy f = { tvalue = None ; fcompute = f } ;;
+
+let get_value l =
+  match l.tvalue with
+  | None ->
+    let res = l.fcompute () in
+    l.tvalue <- Some res ;
+    log "Computed value: %d\n" res ;
+    res
+  | Some res -> res
+;;
+
+let arglazy f args = flazy (fun () -> f args) ;;
+
+let intshow tlazy_val = log "%d\n" (get_value tlazy_val) ;;
+
+log "\nLazyness\n"
+
+let laz1 = arglazy calc 1
+and laz2 = arglazy calc 2 ;;
+let _ = intshow laz1 ;;
+let _ = intshow laz1 ;;
+let _ = intshow laz1 ;;
+let _ = intshow laz2 ;;
+let _ = intshow laz2 ;;
+let _ = intshow laz2 ;;
+
+(* [(x, lazy x) for x = 1 .. 100] *)
+let lazy_list = List.map (fun x -> (x, arglazy calc x)) (List.init 100 (fun x -> x + 1)) ;;
+
+let rec choose n = function
+  | [] -> raise Not_found
+  | (x, lazy_val) :: rest -> if x = n then get_value lazy_val else choose n rest
+;;
+
+log "choose 1 lazy_list = %d\n" (choose 1 lazy_list) ;;
+log "choose 23 lazy_list = %d\n" (choose 23 lazy_list) ;;
+log "choose 23 lazy_list = %d\n" (choose 23 lazy_list) ;;
+
+log "\n[Value restrictions]\n"
+
+let forbid x = function
+  | a -> if a = x then failwith "Forbidden" else a ;;
