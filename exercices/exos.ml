@@ -708,3 +708,220 @@ log "has_color Red people_list = " ;;
 let () = List.iter (log "%s ") (List.map (fun x -> x.name) (has_color Red people_list)) ;; log "\n" ;;
 log "has_color Blue people_list2 = " ;;
 let () = List.iter (log "%s ") (List.map (fun x -> x.name) (has_color Blue people_list2)) ;; log "\n" ;;
+
+log "\n\nPartie 5\n" ;;
+log "----------------\n" ;;
+
+log "\n[Practicing on lists]\n" ;;
+
+let nth l n =
+  let rec loop i = function
+    | [] -> failwith "out of bound"
+    | x :: rest -> if i = n then x else loop (i + 1) rest
+  in
+  loop 0 l
+;;
+
+let rec nth2 l n =
+  match l with
+  | [] -> failwith "out of bound"
+  | x :: rest -> if n = 0 then x else nth2 rest (n - 1)
+;;
+
+let rec rev = function
+  | [] -> []
+  | x :: rest -> rev rest @ [x]
+;;
+
+let append l1 l2 = l1 @ l2 ;;
+let rev_append l1 l2 = rev l1 @ l2 ;;
+
+let rec rev_map f = function
+  | [] -> []
+  | x :: rest -> rev_map f rest @ [f x]
+;;
+
+let rev_map_acc f l =
+  let rec loop acu = function
+    | [] -> acu
+    | x :: rest -> loop (f x :: acu) rest
+  in
+  loop [] l
+;;
+
+(* tests *)
+
+log "nth people_list 0 = %s\n" (nth people_list 0).name ;;
+log "nth people_list 1 = %s\n" (nth people_list 1).name ;;
+log "nth people_list 2 = %s\n" (nth people_list 2).name ;;
+
+log "nth2 people_list 0 = %s\n" (nth2 people_list 0).name ;;
+log "nth2 people_list 1 = %s\n" (nth2 people_list 1).name ;;
+
+log "rev people_list = " ;;
+let () = List.iter (log "%s ") (List.map (fun x -> x.name) (rev people_list)) ;; log "\n" ;;
+log "append people_list people_list2 = " ;;
+let () = List.iter (log "%s ") (List.map (fun x -> x.name) (append people_list people_list2)) ;; log "\n" ;;
+log "rev_append people_list people_list2 = " ;;
+let () = List.iter (log "%s ") (List.map (fun x -> x.name) (rev_append people_list people_list2)) ;; log "\n" ;;
+log "rev_map (fun x -> x.name) people_list = " ;;
+let () = List.iter (log "%s ") (rev_map (fun x -> x.name) people_list) ;; log "\n" ;;
+log "rev_map_acc (fun x -> x.name) people_list = " ;;
+let () = List.iter (log "%s ") (rev_map_acc (fun x -> x.name) people_list) ;; log "\n" ;;
+
+let iter f list =
+  let rec loop = function
+    | [] -> ()
+    | x :: rest -> f x ; loop rest
+  in
+  loop list
+;;
+
+log "my iter: \n" ;;
+let () = iter (fun x -> log "%s " x.name) people_list ;; log "\n" ;;
+iter (Printf.printf "Element: %d\n%!") [1;2;3] ;;
+
+let rec print_list sep conv list =
+  match list with
+  | [] -> ()
+  | [x] -> Printf.printf "%s" (conv x)
+  | x :: rest -> Printf.printf "%s%s" (conv x) sep ; print_list sep conv rest
+;;
+
+log "print_list \", \" (fun x -> x.name) people_list = " ;;
+print_list ", " (fun x -> x.name) people_list ;; log "\n" ;;
+
+let rec print_list_return sep conv list =
+  match list with
+  | [] -> ""
+  | [x] -> conv x
+  | x :: rest -> conv x ^ sep ^ print_list_return sep conv rest
+;;
+
+log "print_list_return \", \" (fun x -> x.name) people_list = %s\n" (print_list_return ", " (fun x -> x.name) people_list) ;;
+
+let rec fold op list =
+  match list with
+  | [] -> failwith "Empty list"
+  | [x] -> x
+  | x :: rest -> op x (fold op rest)
+;;
+
+log "fold (fun x y -> x * y) [1;2;3] = %d\n" (fold (fun x y -> x * y) [1;2;3]) ;;
+log "fold (+) [1;2;3] = %d\n" (fold (+) [1;2;3]) ;;
+
+let rec fold_acu op acu = function
+  | [] -> acu
+  | x :: rest -> fold_acu op (op acu x) rest
+;;
+
+log "fold_acu (+) [1;2;3] = %d\n" (fold_acu (+) 0 [1;2;3]) ;;
+
+let rec exists pred = function
+  | [] -> false
+  | x :: rest -> if pred x then true else exists pred rest
+;;
+
+let fold_exists pred list = fold (fun x y -> x || y) (List.map pred list) ;;
+let fold_acu_exists pred list = fold_acu (fun x y -> x || y) false (List.map pred list) ;;
+
+log "exists (fun x -> x.age < 21) people_list = %b\n" (exists (fun x -> x.age < 21) people_list) ;;
+log "fold_exists (fun x -> x.age < 21) people_list = %b\n" (fold_exists (fun x -> x.age < 21) people_list) ;;
+
+let (++) f g = fun x -> f (g x) ;;
+
+let forall pred list = not (exists (fun x -> not (pred x)) list) ;;
+
+log "forall (fun x -> x.age < 21) people_list = %b\n" (forall (fun x -> x.age < 21) people_list) ;;
+log "check: show ages for all : %s\n" (print_list_return ", " (fun x -> string_of_int x.age) people_list) ;;
+
+let rec assoc key = function
+  | [] -> raise Not_found
+  | (k, v) :: rest -> if k = key then v else assoc key rest
+;;
+
+let assoc_list = List.map (fun x -> (x.name, x.age)) people_list ;;
+let () = List.iter (log "%s ") (List.map (fun x -> x.name) people_list) ;; log "\n" ;;
+log "assoc \"John\" assoc_list = %d\n" (assoc "John" assoc_list) ;;
+
+let rec remove_assoc key = function
+  | [] -> raise Not_found
+  | (k, v) :: rest -> if k = key then rest else (k, v) :: remove_assoc key rest
+;;
+
+let new_assoc_list = remove_assoc "John" assoc_list ;;
+log "new_assoc_list = " ;;
+let () = List.iter (log "%s ") (List.map (fun (x, y) -> x ^ ":" ^ string_of_int y) new_assoc_list) ;; log "\n" ;;
+
+log "\n[Trees]\n" ;;
+
+type 'a tree = Leaf of 'a | Node of 'a * 'a tree * 'a tree ;;
+
+let rec depth = function
+  | Leaf _ -> 0
+  | Node (_, left, right) -> 1 + max (depth left) (depth right)
+;;
+
+let rec build depth value = 
+  if depth = 0 then Leaf value else Node (value, build (depth - 1) value, build (depth - 1) value)
+;;
+
+let print_tree tos tree =
+  let rec loop margin = function
+    | Leaf x -> Printf.printf "___ %s\n%!" (tos x)
+    | Node (value,a,b) ->
+       Printf.printf "___%s" (tos value) ;
+       loop (margin ^ "|   ") a ;
+       Printf.printf "%s|\n%s|" margin margin ;
+       loop (margin ^ "    ") b
+  in
+  loop "   " tree
+;;
+
+let tree = build 3 1 ;;
+print_tree string_of_int tree ;;
+
+(* build fold apply the provided function to create the value of the nth leaf *)
+let rec build_fold depth f =
+  let rec loop depth reversed_depth =
+    if depth = 0 then Leaf (f reversed_depth) else Node (f reversed_depth, loop (depth - 1) (reversed_depth * 2), loop (depth - 1) (reversed_depth *2 + 1))
+  in
+  loop depth 1
+;;
+
+let tree = build_fold 3 (fun x -> x) ;;
+print_tree string_of_int tree ;;
+
+let rec tmap f = function
+  | Leaf x -> Leaf (f x)
+  | Node (value, left, right) -> Node (f value, tmap f left, tmap f right)
+;;
+
+let rec tfind f = function
+  | Leaf x -> if f x then Some x else None
+  | Node (value, left, right) -> if f value then Some value else match tfind f left with
+    | None -> tfind f right
+    | Some x -> Some x
+;;
+
+let rec tcontains f = function
+  | Leaf x -> f x
+  | Node (value, left, right) -> f value || tcontains f left || tcontains f right
+;;
+
+let tcontains_simple value = tcontains (fun x -> x = value) ;;
+
+let rec treplace f sub = function
+  | Leaf x -> if f (Leaf x) then sub else Leaf x
+  | Node (value, left, right) -> if f (Node (value, left, right)) then sub else Node (value, treplace f sub left, treplace f sub right)
+;;
+
+(* tests *)
+
+log "depth tree = %d\n" (depth tree) ;;
+log "depth (Leaf 0) = %d\n" (depth (Leaf 0)) ;;
+
+log "replacing all trees of depth 1 containing 14 by Leaf 0\n"
+let new_tree = treplace (fun t -> tcontains_simple 14 t && depth t = 1) (Leaf 0) tree ;;
+
+print_tree string_of_int new_tree ;;
