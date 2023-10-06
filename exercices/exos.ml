@@ -1076,3 +1076,12 @@ log "\n[Value restrictions]\n"
 
 let forbid x = function
   | a -> if a = x then failwith "Forbidden" else a ;;
+
+let forbid_0 = forbid 0 ;;
+let forbid_1 = forbid 1 ;;
+
+log "forbid_0 1 = %d\n" (forbid_0 1) ;;
+try
+  log "forbid_0 0 = %d\n" (forbid_0 0) ;
+with
+  | Failure s -> log "Failure: %s\n" s
